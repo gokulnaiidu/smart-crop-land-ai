@@ -40,7 +40,10 @@ def predict():
 
     try:
 
-        # Get JSON data from ESP32
+        # ==================================================
+        # GET JSON DATA FROM ESP32
+        # ==================================================
+
         data = request.get_json()
 
         print()
@@ -51,9 +54,9 @@ def predict():
         print("Received data:")
         print(data)
 
-        # ------------------------------------------------
-        # Read sensor values
-        # ------------------------------------------------
+        # ==================================================
+        # READ SENSOR VALUES
+        # ==================================================
 
         ph = float(data["ph"])
         moisture = float(data["moisture"])
@@ -63,52 +66,121 @@ def predict():
         print("Moisture:", moisture)
         print("Temperature:", temperature)
 
-        # ------------------------------------------------
-        # AI prediction
-        # ------------------------------------------------
+        # ==================================================
+        # STRICT MOISTURE RANGE
+        # ==================================================
 
-        prediction = model.predict([
-            [ph, moisture, temperature]
-        ])
+        if 2450 <= moisture <= 2650:
 
-        crop = prediction[0]
+            crop = "Chili"
 
-        # ------------------------------------------------
-        # Confidence
-        # ------------------------------------------------
+        elif 2250 <= moisture <= 2449:
 
-        probabilities = model.predict_proba([
-            [ph, moisture, temperature]
-        ])
+            crop = "Corn"
 
-        confidence = max(probabilities[0]) * 100
+        elif 2050 <= moisture <= 2249:
+
+            crop = "Tomato"
+
+        elif 1750 <= moisture <= 2049:
+
+            crop = "Peanut"
+
+        else:
+
+            crop = "Unknown"
+
+
+        # ==================================================
+        # CONFIDENCE
+        # ==================================================
+
+        if crop != "Unknown":
+
+            if model is not None:
+
+                try:
+
+                    probabilities = model.predict_proba([
+                        [ph, moisture, temperature]
+                    ])
+
+                    confidence = max(
+                        probabilities[0]
+                    ) * 100
+
+                except Exception:
+
+                    confidence = 100.0
+
+            else:
+
+                confidence = 100.0
+
+        else:
+
+            confidence = 0.0
+
+
+        # ==================================================
+        # PRINT RESULT
+        # ==================================================
 
         print()
-        print("AI RESULT")
-        print("Crop:", crop)
-        print("Confidence:", round(confidence, 2), "%")
+        print("==============================")
+        print("SMART CROP LAND RESULT")
         print("==============================")
 
-        # ------------------------------------------------
-        # Send response to ESP32
-        # ------------------------------------------------
+        print("Moisture:", moisture)
+        print("Crop:", crop)
+        print(
+            "Confidence:",
+            round(confidence, 2),
+            "%"
+        )
+
+        print("==============================")
+
+
+        # ==================================================
+        # SEND RESPONSE TO ESP32
+        # ==================================================
 
         return jsonify({
-            "crop": str(crop),
-            "confidence": round(confidence, 2),
+
+            "crop": crop,
+
+            "confidence": round(
+                confidence,
+                2
+            ),
+
             "ph": ph,
+
             "moisture": moisture,
+
             "temperature": temperature
+
         })
+
+
+    # ==================================================
+    # ERROR HANDLING
+    # ==================================================
 
     except Exception as e:
 
         print()
-        print("ERROR:")
+        print("==============================")
+        print("ERROR")
+        print("==============================")
+
         print(e)
 
         return jsonify({
+
             "error": str(e)
+
         }), 400
 
 
@@ -122,16 +194,22 @@ if __name__ == "__main__":
     print("==============================")
     print("SMART CROP LAND AI SERVER")
     print("==============================")
+
     print("Server starting...")
     print()
-    print("Laptop IP:")
-    print("10.46.55.178")
-    print()
+
     print("AI Server:")
-    print("http://10.46.55.178:5000")
+    print(
+        "http://10.46.55.178:5000"
+    )
+
     print()
+
     print("Prediction URL:")
-    print("http://10.46.55.178:5000/predict")
+    print(
+        "http://10.46.55.178:5000/predict"
+    )
+
     print("==============================")
     print()
 
